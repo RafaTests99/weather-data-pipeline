@@ -58,3 +58,22 @@ def guardar_raw(datos: dict, ciudad: str, fecha: date) -> Path:
     logger.info("Datos guardados en %s", archivo)
 
     return archivo
+
+
+def ingestar_dia(fecha: date) -> list[Path]:
+    """Descarga y guarda los datos de todas las ciudades para un día concreto."""
+    raw_paths = []
+    fallidos = []
+    for ciudad in CIUDADES:
+        try:
+            datos = descargar_dia(ciudad, fecha)
+            raw_path = guardar_raw(datos, ciudad, fecha)
+            raw_paths.append(raw_path)
+        except requests.RequestException:
+            logger.exception("Error al procesar %s para %s", ciudad, fecha)
+            fallidos.append(ciudad)
+    if fallidos:
+        raise RuntimeError(
+            f"Fallaron {len(fallidos)} de {len(CIUDADES)} ciudades para {fecha}: {', '.join(fallidos)}"
+        )
+    return raw_paths
