@@ -12,5 +12,6 @@ Pygments==2.21.0
 pytest==9.1.1
 python-dateutil==2.9.0.post0
 requests==2.34.2
+ruff==0.17.1
 six==1.17.0
 urllib3==2.8.0

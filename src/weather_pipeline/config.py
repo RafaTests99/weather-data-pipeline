@@ -11,4 +11,6 @@ CIUDADES = {
     "cordoba": {"lat": 37.89, "lon": -4.78},
 }
 
+TIMEZONE = "Europe/Madrid"
+
 RAW_DIR = Path("data/raw")

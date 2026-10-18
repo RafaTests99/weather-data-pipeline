@@ -1,9 +1,11 @@
+import json
 import logging
 from datetime import date
+from pathlib import Path
 
 import requests
 
-from weather_pipeline.config import API_URL, CIUDADES, VARIABLES
+from weather_pipeline.config import API_URL, CIUDADES, RAW_DIR, TIMEZONE, VARIABLES
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +14,10 @@ TIMEOUT_SEGUNDOS = 10
 
 def descargar_dia(ciudad: str, fecha: date) -> dict:
     """Descarga los datos diarios de una ciudad para un día concreto."""
+    if ciudad not in CIUDADES:
+        raise ValueError(
+            f"Ciudad desconocida: {ciudad!r}. Disponibles: {', '.join(sorted(CIUDADES))}"
+        )
     coordenadas = CIUDADES[ciudad]
     dia = fecha.isoformat()
 
@@ -23,7 +29,7 @@ def descargar_dia(ciudad: str, fecha: date) -> dict:
         "start_date": dia,
         "end_date": dia,
         "daily": ",".join(VARIABLES),
-        "timezone": "Europe/Madrid",
+        "timezone": TIMEZONE,
     }
     response = requests.get(API_URL, params=params, timeout=TIMEOUT_SEGUNDOS)
     response.raise_for_status()
@@ -31,3 +37,24 @@ def descargar_dia(ciudad: str, fecha: date) -> dict:
 
     logger.info("Descarga completada para %s el %s", ciudad, dia)
     return datos
+
+
+def guardar_raw(datos: dict, ciudad: str, fecha: date) -> Path:
+    """Guarda los datos descargados en un archivo JSON."""
+
+    dia = fecha.isoformat()
+    raw_dir = RAW_DIR / f"fecha={dia}"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    archivo_tmp = raw_dir / f"{ciudad}.json.tmp"
+    archivo = raw_dir / f"{ciudad}.json"
+
+    with open(archivo_tmp, "w", encoding="utf-8") as f:
+        json.dump(datos, f, ensure_ascii=False, indent=2)
+
+    archivo_tmp.replace(
+        archivo
+    )  # Escritura atómica: si el proceso muere antes, nunca queda un JSON a medias
+
+    logger.info("Datos guardados en %s", archivo)
+
+    return archivo
